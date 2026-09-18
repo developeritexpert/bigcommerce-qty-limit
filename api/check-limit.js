@@ -51,7 +51,7 @@ module.exports = async (req, res) => {
         allowed: false,
         limit,
         alreadyOwned: 0,
-        message: 'Please log in to purchase this product. <a href="google.com" >Test</a>',
+        message: 'Please log in to purchase this product.',
       });
       return;
     }
@@ -61,7 +61,7 @@ module.exports = async (req, res) => {
         allowed: false,
         limit,
         alreadyOwned: 0,
-        message: 'Please log in to purchase this product. <a href="google.com" >Test</a>',
+        message: 'Please log in to purchase this product.',
       });
       return;
     }

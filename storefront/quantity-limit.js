@@ -1,6 +1,7 @@
 (function () {
-  var API_BASE = 'https://YOUR-PROJECT.vercel.app';
-  var APP_CLIENT_ID = 'YOUR_API_CLIENT_ID';
+  var API_BASE = 'https://bc-qty-limit.vercel.app';
+  var APP_CLIENT_ID = '96m7ivetlymx4erslj6fzcv7v634ryj';
+  var BYPASS_FLAG = '__qtyLimitPassed';
 
   function getCustomerJwt() {
     return fetch('/customer/current.jwt?app_client_id=' + APP_CLIENT_ID, {
@@ -48,11 +49,27 @@
   }
 
   function initProductPage() {
-    var forms = document.querySelectorAll('form[data-cart-item-add]');
-    if (!forms.length) return;
+    // Capture phase on document = this runs BEFORE the theme's own click
+    // handler on the button, no matter how or when the theme binds it.
+    document.addEventListener(
+      'click',
+      function (evt) {
+        var btn =
+          evt.target.closest &&
+          evt.target.closest(
+            'form[data-cart-item-add] [type="submit"]'
+          );
+        if (!btn) return;
 
-    forms.forEach(function (form) {
-      form.addEventListener('submit', function (evt) {
+        // This is our own re-triggered click after a passed check - let it through.
+        if (btn[BYPASS_FLAG]) {
+          btn[BYPASS_FLAG] = false;
+          return;
+        }
+
+        var form = btn.closest('form[data-cart-item-add]');
+        if (!form) return;
+
         var productIdInput = form.querySelector('input[name="product_id"]');
         var qtyInput = form.querySelector('input[name="qty[]"], input[name="qty"]');
         if (!productIdInput) return;
@@ -60,21 +77,30 @@
         var productId = parseInt(productIdInput.value, 10);
         var requestedQty = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
 
+        // Block immediately, before ANY other handler (theme's AJAX call
+        // or native form submission) can run.
         evt.preventDefault();
         evt.stopPropagation();
+        evt.stopImmediatePropagation();
         clearError(form);
 
         getCustomerJwt().then(function (jwtToken) {
           checkLimit(jwtToken, productId, requestedQty).then(function (result) {
             if (result.allowed) {
-              HTMLFormElement.prototype.submit.call(form);
+              // Re-click for real, so the theme's normal add-to-cart runs.
+              btn[BYPASS_FLAG] = true;
+              btn.click();
             } else {
-              showError(form, result.message || 'This quantity is not available for your account.');
+              showError(
+                form,
+                result.message || 'This quantity is not available for your account.'
+              );
             }
           });
         });
-      });
-    });
+      },
+      true
+    );
   }
 
   function initCartPage() {

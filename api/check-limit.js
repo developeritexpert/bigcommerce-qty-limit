@@ -47,6 +47,7 @@ module.exports = async (req, res) => {
     try {
       customer = verifyCustomerJwt(customerJwt);
     } catch (err) {
+      console.error('JWT verification failed:', err.message);
       res.status(200).json({
         allowed: false,
         limit,
